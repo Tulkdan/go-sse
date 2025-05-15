@@ -1,0 +1,26 @@
+* SSE server in Golang
+
+This is just a POC of a SSE server containing two endpoints, 1 for subscribing and 1 for publishing messages.
+
+
+** How to run
+
+You can use =just= to run the server locally
+
+#+begin_src shell
+just run
+#+end_src
+
+** How to use
+
+After running the server, you can subscribe using =curl= with the following command
+
+#+begin_src shell
+curl localhost:8000/subscribe
+#+end_src
+
+Later, you can simply publish a message in the =/publish= endpoint with the following command
+
+#+begin_src shell
+curl localhsot:8000/publish -d '{"name": "Tulkdan", "value": 2000 }'
+#+end_src
