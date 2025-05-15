@@ -28,7 +28,7 @@ func (p *PubSub) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 		case <-clientGone:
 			fmt.Println("Client disconnected")
 			return
-		case data := <- p.channel:
+		case data := <-p.channel:
 			_, err := fmt.Fprintf(w, "data: %s\n", data)
 			if err != nil {
 				return
@@ -42,8 +42,8 @@ func (p *PubSub) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 }
 
 type Input struct {
-	Value uint `json:"value"`
-	Name string `json:"name"`
+	Value uint   `json:"value"`
+	Name  string `json:"name"`
 }
 
 func (p *PubSub) HandlePublish(w http.ResponseWriter, r *http.Request) {
@@ -59,4 +59,3 @@ func (p *PubSub) HandlePublish(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Message received"))
 }
-
