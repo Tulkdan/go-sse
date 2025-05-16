@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"sync"
 	"time"
 )
 
@@ -16,6 +17,7 @@ type SubClients struct {
 
 type PubSub struct {
 	topics map[string][]*SubClients
+	mu     sync.RWMutex
 }
 
 func NewPubSub() *PubSub {
@@ -23,6 +25,9 @@ func NewPubSub() *PubSub {
 }
 
 func (p *PubSub) getOrCreateTopic(topicName, requestId string) *SubClients {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	clients, exists := p.topics[topicName]
 	if exists == false {
 		clients = []*SubClients{}
@@ -45,9 +50,29 @@ func (p *PubSub) getOrCreateTopic(topicName, requestId string) *SubClients {
 	return currClient
 }
 
+func (p *PubSub) clientDisconnect(topicName, requestId string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	var index int
+	for i, client := range p.topics[topicName] {
+		if client.id == requestId {
+			index = i
+			break
+		}
+	}
+
+	p.topics[topicName] = slices.Delete(p.topics[topicName], index, index+1)
+
+	if len(p.topics[topicName]) == 0 {
+		delete(p.topics, topicName)
+	}
+}
+
 func (p *PubSub) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	topicName := r.URL.Query().Get("topic")
-	clientInTopic := p.getOrCreateTopic(topicName, r.Context().Value("REQUEST_ID").(string))
+	requestId := r.Context().Value("REQUEST_ID").(string)
+	clientInTopic := p.getOrCreateTopic(topicName, requestId)
 
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Connection", "keep-alive")
@@ -59,19 +84,7 @@ func (p *PubSub) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 		case <-r.Context().Done():
 			fmt.Println("Client disconnected")
 
-			var index int
-			for i, client := range p.topics[topicName] {
-				if client.id == clientInTopic.id {
-					index = i
-					break
-				}
-			}
-
-			p.topics[topicName] = slices.Delete(p.topics[topicName], index, index+1)
-
-			if len(p.topics[topicName]) == 0 {
-				delete(p.topics, topicName)
-			}
+			p.clientDisconnect(topicName, requestId)
 
 			return
 		case data := <-clientInTopic.channel:
