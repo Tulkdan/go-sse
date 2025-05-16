@@ -100,11 +100,6 @@ func (p *PubSub) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type Input struct {
-	Value uint   `json:"value"`
-	Name  string `json:"name"`
-}
-
 func (p *PubSub) HandlePublish(w http.ResponseWriter, r *http.Request) {
 	topicName := r.URL.Query().Get("topic")
 	topic, exists := p.topics[topicName]
@@ -113,17 +108,18 @@ func (p *PubSub) HandlePublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var input Input
+	var input interface{}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	b, _ := json.Marshal(input)
 	for _, client := range topic {
-		client.channel <- fmt.Sprintf("%+v", input)
+		client.channel <- string(b)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Message received"))
+	w.Write([]byte(`{"msg": "Message received"}`))
 }
