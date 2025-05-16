@@ -16,11 +16,11 @@ just run
 After running the server, you can subscribe using =curl= with the following command
 
 #+begin_src shell
-curl localhost:8000/subscribe
+curl "localhost:8000/subscribe?topic=notification"
 #+end_src
 
 Later, you can simply publish a message in the =/publish= endpoint with the following command
 
 #+begin_src shell
-curl localhsot:8000/publish -d '{"name": "Tulkdan", "value": 2000 }'
+curl "localhsot:8000/publish?topic=notification" -d '{"name": "Tulkdan", "value": 2000 }'
 #+end_src
